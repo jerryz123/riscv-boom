@@ -812,7 +812,7 @@ class BoomCore(implicit p: Parameters, edge: freechips.rocketchip.tilelink.TLEdg
    lsu.io.dmem_is_ordered:= dc_shim.io.core.ordered
 
    lsu.io.fp_stdata <> fp_pipeline.io.tosdq
-
+   lsu.io.vec_stdata <> vec_pipeline.io.tosdq
 
    //-------------------------------------------------------------
    //-------------------------------------------------------------
