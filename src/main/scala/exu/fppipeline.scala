@@ -51,6 +51,8 @@ class FpPipeline(implicit p: Parameters) extends BoomModule()(p) with tile.HasFP
       val wb_pdsts         = Input(Vec(num_wakeup_ports, UInt(width=fp_preg_sz.W)))
 
       val debug_tsc_reg    = Input(UInt(width=xLen.W))
+      val vl               = Input(UInt(width=VL_SZ.W))
+      val lsu_ldq_eidx     = Input(Vec(NUM_LSU_ENTRIES, UInt(width=VL_SZ.W)))
    }
 
    //**********************************
@@ -59,6 +61,7 @@ class FpPipeline(implicit p: Parameters) extends BoomModule()(p) with tile.HasFP
    val exe_units        = new boom.exu.ExecutionUnits(fpu=true)
    val issue_unit       = Module(new IssueUnitCollasping(
                            issueParams.find(_.iqType == IQT_FP.litValue).get,
+                           false,
                            num_wakeup_ports))
    val fregfile         = Module(new RegisterFileBehavorial(numFpPhysRegs,
                                  exe_units.withFilter(_.uses_iss_unit).map(e => e.num_rf_read_ports).sum,
@@ -94,7 +97,8 @@ class FpPipeline(implicit p: Parameters) extends BoomModule()(p) with tile.HasFP
    issue_unit.io.tsc_reg := io.debug_tsc_reg
    issue_unit.io.brinfo := io.brinfo
    issue_unit.io.flush_pipeline := io.flush_pipeline
-
+   issue_unit.io.vl := io.vl
+   issue_unit.io.lsu_ldq_eidx := io.lsu_ldq_eidx
    require (exe_units.num_total_bypass_ports == 0)
 
    //-------------------------------------------------------------

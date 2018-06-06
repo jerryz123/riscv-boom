@@ -564,6 +564,9 @@ class BoomCore(implicit p: Parameters, edge: freechips.rocketchip.tilelink.TLEdg
       iu.io.dis_valids(w) := dis_valids(w) && dis_uops(w).iqtype === UInt(iu.iqType)
       iu.io.dis_uops(w) := dis_uops(w)
 
+      iu.io.vl := csr.io.vecstatus.vl
+      iu.io.lsu_ldq_eidx := lsu.io.ldq_eidx
+
       when (dis_uops(w).uopc === uopSTA && dis_uops(w).lrs2_rtype === RT_FLT) {
          iu.io.dis_uops(w).lrs2_rtype := RT_X
          iu.io.dis_uops(w).prs2_busy := Bool(false)
@@ -710,6 +713,14 @@ class BoomCore(implicit p: Parameters, edge: freechips.rocketchip.tilelink.TLEdg
    fp_pipeline.io.fcsr_rm := csr.io.fcsr_rm
    vec_pipeline.io.fcsr_rm := csr.io.fcsr_rm // TODO_Vec: check if vec fp rm should be controlled by same csr
 
+   fp_pipeline.io.vl := csr.io.vecstatus.vl
+   vec_pipeline.io.vl := csr.io.vecstatus.vl
+
+   fp_pipeline.io.lsu_ldq_eidx := lsu.io.ldq_eidx
+   vec_pipeline.io.lsu_ldq_eidx := lsu.io.ldq_eidx
+
+
+
    csr.io.hartid := io.hartid
    csr.io.interrupts := io.interrupts
 
@@ -804,6 +815,8 @@ class BoomCore(implicit p: Parameters, edge: freechips.rocketchip.tilelink.TLEdg
    lsu.io.fp_stdata <> fp_pipeline.io.tosdq
    lsu.io.vec_stdata <> vec_pipeline.io.tosdq
 
+   lsu.io.vl := csr.io.vecstatus.vl
+
    //-------------------------------------------------------------
    //-------------------------------------------------------------
    // **** Writeback Stage ****
@@ -855,6 +868,7 @@ class BoomCore(implicit p: Parameters, edge: freechips.rocketchip.tilelink.TLEdg
             vec_pipeline.io.ll_wport.valid     := wbIsValid(RT_VEC)
             vec_pipeline.io.ll_wport.bits.uop  := wbresp.bits.uop
             vec_pipeline.io.ll_wport.bits.data := wbdata
+            vec_pipeline.io.ll_wport.bits.rate := wbresp.bits.rate
             assert (vec_pipeline.io.ll_wport.ready, "[core] LL port should always be ready in vec regfile")
          }
          else
@@ -914,6 +928,7 @@ class BoomCore(implicit p: Parameters, edge: freechips.rocketchip.tilelink.TLEdg
    rob.io.enq_partial_stall := !dec_rdy // TODO come up with better ROB compacting scheme.
    rob.io.debug_tsc := debug_tsc_reg
    rob.io.csr_stall := csr.io.csr_stall
+   rob.io.vl := csr.io.vecstatus.vl
 
    assert ((dec_will_fire zip rename_stage.io.ren1_mask map {case(d,r) => d === r}).reduce(_|_),
       "[core] Assumption that dec_will_fire and ren1_mask are equal is being violated.")
@@ -1458,4 +1473,3 @@ class BoomCore(implicit p: Parameters, edge: freechips.rocketchip.tilelink.TLEdg
 
    override val compileOptions = chisel3.core.ExplicitCompileOptions.NotStrict.copy(explicitInvalidate = true)
 }
-
