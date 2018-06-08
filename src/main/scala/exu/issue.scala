@@ -26,6 +26,12 @@ case class IssueParams(
    iqType: BigInt
 )
 
+class WakeupPdst(implicit p: Parameters) extends BoomBundle()(p)
+{
+   val pdst = UInt(width=PREG_SZ.W)
+   val eidx = UInt(width=VL_SZ.W)
+}
+
 class IssueUnitIO(
    val issue_width: Int,
    val num_wakeup_ports: Int)
@@ -37,7 +43,8 @@ class IssueUnitIO(
 
    val iss_valids     = Output(Vec(issue_width, Bool()))
    val iss_uops       = Output(Vec(issue_width, new MicroOp()))
-   val wakeup_pdsts   = Flipped(Vec(num_wakeup_ports, Valid(UInt(width=PREG_SZ.W))))
+   val wakeup_pdsts   = Flipped(Vec(num_wakeup_ports, Valid(new WakeupPdst())))
+
 
    // tell the issue unit what each execution pipeline has in terms of functional units
    val fu_types       = Input(Vec(issue_width, Bits(width=FUC_SZ.W)))
