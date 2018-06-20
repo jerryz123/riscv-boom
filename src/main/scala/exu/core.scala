@@ -371,7 +371,7 @@ class BoomCore(implicit p: Parameters, edge: freechips.rocketchip.tilelink.TLEdg
       // TODO tailor this to only care if a given instruction uses a resource?
       val stall_me = (dec_valids(w) &&
                         (  !(rename_stage.io.inst_can_proceed(w))
-                        || (dec_valids(w) && dec_uops(w).is_unique &&
+                        || (dec_uops(w).is_unique &&
                            (!(rob.io.empty) || !lsu.io.lsu_fencei_rdy || prev_insts_in_bundle_valid))
                         || !rob.io.ready
                         || lsu.io.laq_full
@@ -380,7 +380,7 @@ class BoomCore(implicit p: Parameters, edge: freechips.rocketchip.tilelink.TLEdg
                         || br_unit.brinfo.mispredict
                         || rob.io.flush.valid
                         || dec_stall_next_inst
-                        || (dec_valids(w) && dec_uops(w).is_fencei && !lsu.io.lsu_fencei_rdy)
+                        || (dec_uops(w).is_fencei && !lsu.io.lsu_fencei_rdy)
                         )) ||
                      dec_last_inst_was_stalled
 
@@ -585,6 +585,7 @@ class BoomCore(implicit p: Parameters, edge: freechips.rocketchip.tilelink.TLEdg
          iu.io.dis_uops(w).lrs3_rtype := RT_X
          iu.io.dis_uops(w).prs3_busy := Bool(false)
          // Vec stores have operand in rs3 weird
+         // TODO_vec polymorphic stores
       }
 
    }
@@ -659,6 +660,9 @@ class BoomCore(implicit p: Parameters, edge: freechips.rocketchip.tilelink.TLEdg
    issue_units.map(_.io.tsc_reg := debug_tsc_reg)
    issue_units.map(_.io.brinfo := br_unit.brinfo)
    issue_units.map(_.io.flush_pipeline := rob.io.flush.valid)
+   issue_units.map(_.io.fromfp_valid := DontCare)
+   issue_units.map(_.io.fromfp_paddr := DontCare)
+   issue_units.map(_.io.fromfp_data  := DontCare)
 
    // Wakeup (Issue & Writeback)
 
@@ -744,6 +748,8 @@ class BoomCore(implicit p: Parameters, edge: freechips.rocketchip.tilelink.TLEdg
    fp_pipeline.io.commit_store_at_rob_head  := rob.io.com_store_is_at_rob_head
    vec_pipeline.io.commit_store_at_rob_head := rob.io.com_store_is_at_rob_head
 
+
+   vec_pipeline.io.fromfp <> fp_pipeline.io.tovec
 
    csr.io.hartid := io.hartid
    csr.io.interrupts := io.interrupts
@@ -936,7 +942,7 @@ class BoomCore(implicit p: Parameters, edge: freechips.rocketchip.tilelink.TLEdg
    ll_wbarb.io.in(1) <> fp_pipeline.io.toint
    iregfile.io.write_ports(llidx) <> WritePort(ll_wbarb.io.out, IPREG_SZ, xLen, false, numVecPhysRegs)
 
-
+   vec_pipeline.io.fromfp <> fp_pipeline.io.tovec
 
    //-------------------------------------------------------------
    //-------------------------------------------------------------
